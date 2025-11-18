@@ -1,23 +1,27 @@
-const passport = require("passport")
-const GoogleStrategy = require('passport-google-oauth2').Strategy;
-let dotenv = require('dotenv').config()
+// Wrapper try-catch global pour éviter les crashes au chargement du module
+let passportConfigured = false;
 
-// Déterminer l'URL du callback dynamiquement
-const getCallbackURL = () => {
-    // En production (Vercel), utiliser l'URL de l'environnement
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}/auth/google/callback`;
-    }
-    // Si BACKEND_URL est défini, l'utiliser
-    if (process.env.BACKEND_URL) {
-        return `${process.env.BACKEND_URL}/auth/google/callback`;
-    }
-    // Sinon, utiliser localhost par défaut
-    return process.env.CALLBACK_URL || "http://localhost:3001/auth/google/callback";
-};
+try {
+    const passport = require("passport")
+    const GoogleStrategy = require('passport-google-oauth2').Strategy;
+    let dotenv = require('dotenv').config()
 
-// Fonction pour configurer Passport de manière sécurisée
-function configurePassport() {
+    // Déterminer l'URL du callback dynamiquement
+    const getCallbackURL = () => {
+        // En production (Vercel), utiliser l'URL de l'environnement
+        if (process.env.VERCEL_URL) {
+            return `https://${process.env.VERCEL_URL}/auth/google/callback`;
+        }
+        // Si BACKEND_URL est défini, l'utiliser
+        if (process.env.BACKEND_URL) {
+            return `${process.env.BACKEND_URL}/auth/google/callback`;
+        }
+        // Sinon, utiliser localhost par défaut
+        return process.env.CALLBACK_URL || "http://localhost:3001/auth/google/callback";
+    };
+
+    // Fonction pour configurer Passport de manière sécurisée
+    function configurePassport() {
     // Vérifier que les variables d'environnement sont définies et non vides
     const clientId = process.env.CLIENT_ID;
     const clientSecret = process.env.CLIENT_SECRET;
@@ -76,34 +80,43 @@ function configurePassport() {
         console.error('⚠️  Le backend démarre mais OAuth ne fonctionnera pas.');
         return false;
     }
-}
+    }
 
-// Configurer Passport de manière sécurisée (ne pas throw d'erreur)
-const passportConfigured = configurePassport();
+    // Configurer Passport de manière sécurisée (ne pas throw d'erreur)
+    passportConfigured = configurePassport();
 
-if (!passportConfigured) {
-    console.warn('⚠️  Passport Google Strategy NON configuré - variables manquantes');
-    console.warn('⚠️  Les routes /auth/google retourneront une erreur 500');
+    if (!passportConfigured) {
+        console.warn('⚠️  Passport Google Strategy NON configuré - variables manquantes');
+        console.warn('⚠️  Les routes /auth/google retourneront une erreur 500');
+    }
+
+    // Configuration des sérialiseurs Passport
+    passport.serializeUser((user,done)=>{
+         // Sauvegarder les informations essentielles de l'utilisateur avec les tokens
+         done(null, {
+             id: user.id,
+             displayName: user.displayName,
+             email: user.email,
+             picture: user.picture,
+             accessToken: user.accessToken,
+             refreshToken: user.refreshToken
+         });
+    })
+
+    passport.deserializeUser((user,done)=>{
+         // Restaurer l'utilisateur avec ses tokens
+         done(null, user);
+    })
+
+} catch (error) {
+    // Capturer toutes les erreurs au chargement du module pour éviter le crash
+    console.error('❌ ERREUR CRITIQUE lors du chargement du module auth.js:', error.message);
+    console.error('Stack:', error.stack);
+    console.warn('⚠️  Le module auth.js n\'a pas pu être chargé correctement');
+    console.warn('⚠️  L\'authentification Google ne fonctionnera pas');
+    passportConfigured = false;
 }
 
 // Exporter un indicateur pour savoir si Passport est configuré
 module.exports.isPassportConfigured = passportConfigured;
-
-
-passport.serializeUser((user,done)=>{
-     // Sauvegarder les informations essentielles de l'utilisateur avec les tokens
-     done(null, {
-         id: user.id,
-         displayName: user.displayName,
-         email: user.email,
-         picture: user.picture,
-         accessToken: user.accessToken,
-         refreshToken: user.refreshToken
-     });
-})
-
-passport.deserializeUser((user,done)=>{
-     // Restaurer l'utilisateur avec ses tokens
-     done(null, user);
-})
 
