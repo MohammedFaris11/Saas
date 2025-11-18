@@ -23,27 +23,28 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasBusinessAccess, setHasBusinessAccess] = useState(false)
+  // Mode "skip login" : toujours authentifié avec un utilisateur mock
+  const [user, setUser] = useState<User | null>({
+    displayName: "Demo User",
+    email: "demo@example.com",
+    picture: undefined
+  })
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasBusinessAccess, setHasBusinessAccess] = useState(true)
   const router = useRouter()
 
   const checkAuth = async () => {
-    try {
-      setIsLoading(true)
-      const status = await apiClient.getAuthStatus()
-      setIsAuthenticated(status.isAuthenticated)
-      setUser(status.user || null)
-      setHasBusinessAccess(status.hasBusinessAccess || false)
-    } catch (error) {
-      console.error("Error checking auth status:", error)
-      setIsAuthenticated(false)
-      setUser(null)
-      setHasBusinessAccess(false)
-    } finally {
-      setIsLoading(false)
-    }
+    // Mode "skip login" : pas de vérification réelle
+    // L'utilisateur est toujours considéré comme authentifié
+    setIsLoading(false)
+    setIsAuthenticated(true)
+    setUser({
+      displayName: "Demo User",
+      email: "demo@example.com",
+      picture: undefined
+    })
+    setHasBusinessAccess(true)
   }
 
   const login = () => {

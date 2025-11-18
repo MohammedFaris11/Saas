@@ -13,12 +13,11 @@ export default function SignupPage() {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const { t } = useLanguage()
 
+  // Mode "skip login" : rediriger automatiquement vers le dashboard
   useEffect(() => {
-    // Si l'utilisateur est déjà authentifié, rediriger vers le dashboard
-    if (!authLoading && isAuthenticated) {
-      router.push("/dashboard")
-    }
-  }, [isAuthenticated, authLoading, router])
+    // Toujours rediriger vers le dashboard car l'utilisateur est toujours authentifié
+    router.push("/dashboard")
+  }, [router])
 
   const handleGoogleSignUp = () => {
     login() // Utilise le contexte d'authentification qui redirige vers Google OAuth

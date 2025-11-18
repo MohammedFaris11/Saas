@@ -21,29 +21,14 @@ export default function DashboardLayout({
   const { t } = useLanguage()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  useEffect(() => {
-    // Rediriger vers la page de login si non authentifié
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login")
-    }
-  }, [isAuthenticated, isLoading, router])
+  // Mode "skip login" : pas de redirection vers login
+  // const handleLogout = async () => {
+  //   await logout()
+  // }
 
   const handleLogout = async () => {
-    await logout()
-  }
-
-  // Afficher un loader pendant la vérification de l'authentification
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
-      </div>
-    )
-  }
-
-  // Ne rien afficher si non authentifié (redirection en cours)
-  if (!isAuthenticated) {
-    return null
+    // Mode "skip login" : logout ne fait rien
+    console.log("Logout désactivé en mode skip login")
   }
 
   // Fonction pour obtenir les initiales de l'utilisateur

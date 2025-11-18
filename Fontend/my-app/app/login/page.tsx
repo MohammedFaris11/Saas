@@ -14,20 +14,11 @@ function LoginContent() {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const { t } = useLanguage()
 
+  // Mode "skip login" : rediriger automatiquement vers le dashboard
   useEffect(() => {
-    // Si l'utilisateur est déjà authentifié, rediriger vers le dashboard
-    if (!authLoading && isAuthenticated) {
-      router.push("/dashboard")
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  // Vérifier si on vient d'une redirection après connexion
-  useEffect(() => {
-    const reconnected = searchParams.get("reconnected")
-    if (reconnected === "true") {
-      router.push("/dashboard")
-    }
-  }, [searchParams, router])
+    // Toujours rediriger vers le dashboard car l'utilisateur est toujours authentifié
+    router.push("/dashboard")
+  }, [router])
 
   const handleGoogleSignIn = () => {
     login() // Utilise le contexte d'authentification qui redirige vers Google OAuth
