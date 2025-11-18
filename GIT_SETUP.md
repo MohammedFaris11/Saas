@@ -17,7 +17,7 @@ Après avoir créé le repository, GitHub vous donnera les commandes. Utilisez c
 
 ```bash
 cd c:\Users\MSI\Desktop\VRS2
-git remote add origin https://github.com/VOTRE_USERNAME/VRS2.git
+git remote add origin https://github.com/MohammedFaris11/Saas.git
 git branch -M main
 git push -u origin main
 ```
