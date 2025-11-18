@@ -86,6 +86,9 @@ if (!passportConfigured) {
     console.warn('⚠️  Les routes /auth/google retourneront une erreur 500');
 }
 
+// Exporter un indicateur pour savoir si Passport est configuré
+module.exports.isPassportConfigured = passportConfigured;
+
 
 passport.serializeUser((user,done)=>{
      // Sauvegarder les informations essentielles de l'utilisateur avec les tokens

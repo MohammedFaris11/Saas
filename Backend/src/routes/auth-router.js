@@ -2,6 +2,7 @@ const { Router } = require("express");
 const router = Router()
 const service = require("../services/auth-services")
 const passport = require("passport")
+const { isPassportConfigured } = require("./auth");
 
 const {isLoggedIn} = require("../middlewares/is_logged");
 router.get('/protected',isLoggedIn,(req,res)=>{
@@ -26,7 +27,16 @@ router.get('/status', (req, res) => {
 });
 
 router.get('/google', (req, res, next) => {
-    // Vérifier que les variables d'environnement sont définies
+    // Vérifier que Passport est configuré
+    if (!isPassportConfigured) {
+        console.error('❌ Tentative d\'authentification Google mais Passport n\'est pas configuré');
+        return res.status(500).json({
+            success: false,
+            error: 'Configuration OAuth manquante. CLIENT_ID et CLIENT_SECRET doivent être définis dans les variables d\'environnement Vercel. Veuillez redéployer après avoir ajouté les variables.'
+        });
+    }
+    
+    // Vérifier que les variables d'environnement sont définies (double vérification)
     if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
         console.error('❌ Tentative d\'authentification Google sans variables d\'environnement');
         return res.status(500).json({
@@ -34,9 +44,18 @@ router.get('/google', (req, res, next) => {
             error: 'Configuration OAuth manquante. CLIENT_ID et CLIENT_SECRET doivent être définis dans les variables d\'environnement Vercel.'
         });
     }
-    passport.authenticate("google", {
-        scope: ['email', 'profile', 'https://www.googleapis.com/auth/business.manage']
-    })(req, res, next);
+    
+    try {
+        passport.authenticate("google", {
+            scope: ['email', 'profile', 'https://www.googleapis.com/auth/business.manage']
+        })(req, res, next);
+    } catch (error) {
+        console.error('❌ Erreur lors de l\'authentification Google:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Erreur lors de l\'initialisation de l\'authentification Google. Veuillez vérifier la configuration OAuth.'
+        });
+    }
 })
 
 
@@ -50,16 +69,21 @@ const getFrontendURL = () => {
     return "http://localhost:3000";
 };
 
-router.get('/google/callback', 
-    passport.authenticate('google', { failureRedirect: `${getFrontendURL()}/login` }), 
-    (req, res) => {
-      // Les établissements suivis sont conservés car ils sont stockés par userId (email)
-      // Seul le token d'accès est mis à jour pour le nouveau compte connecté
-      // Redirect to the desired page after successful authentication
-      // Ajouter un paramètre pour indiquer qu'on vient de se reconnecter
-      res.redirect(`${getFrontendURL()}/dashboard?reconnected=true`); // Your front-end URL
+router.get('/google/callback', (req, res, next) => {
+    // Vérifier que Passport est configuré
+    if (!isPassportConfigured) {
+        console.error('❌ Tentative de callback Google mais Passport n\'est pas configuré');
+        return res.redirect(`${getFrontendURL()}/login?error=oauth_not_configured`);
     }
-  );
+    
+    passport.authenticate('google', { failureRedirect: `${getFrontendURL()}/login` })(req, res, next);
+}, (req, res) => {
+    // Les établissements suivis sont conservés car ils sont stockés par userId (email)
+    // Seul le token d'accès est mis à jour pour le nouveau compte connecté
+    // Redirect to the desired page after successful authentication
+    // Ajouter un paramètre pour indiquer qu'on vient de se reconnecter
+    res.redirect(`${getFrontendURL()}/dashboard?reconnected=true`); // Your front-end URL
+});
 router.get('/logout', (req, res, next) => {
      req.logout((err) => {
          if (err) {
