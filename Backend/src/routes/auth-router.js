@@ -25,9 +25,19 @@ router.get('/status', (req, res) => {
     }
 });
 
-router.get('/google',passport.authenticate("google",{
-    scope:['email','profile','https://www.googleapis.com/auth/business.manage']
-}))
+router.get('/google', (req, res, next) => {
+    // Vérifier que les variables d'environnement sont définies
+    if (!process.env.CLIENT_ID || !process.env.CLIENT_SECRET) {
+        console.error('❌ Tentative d\'authentification Google sans variables d\'environnement');
+        return res.status(500).json({
+            success: false,
+            error: 'Configuration OAuth manquante. CLIENT_ID et CLIENT_SECRET doivent être définis dans les variables d\'environnement Vercel.'
+        });
+    }
+    passport.authenticate("google", {
+        scope: ['email', 'profile', 'https://www.googleapis.com/auth/business.manage']
+    })(req, res, next);
+})
 
 
 // Déterminer l'URL du frontend dynamiquement
