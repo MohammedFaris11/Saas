@@ -1,4 +1,21 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+// Déterminer l'URL de l'API selon l'environnement
+const getApiBaseUrl = () => {
+  // En production (Vercel), utiliser la variable d'environnement
+  if (typeof window !== 'undefined') {
+    // Côté client
+    return process.env.NEXT_PUBLIC_API_URL || 
+           (process.env.NODE_ENV === 'production' 
+             ? 'https://vrs2-backend-dqk6z91ff-simofaris2018-2330s-projects.vercel.app'
+             : 'http://localhost:3001')
+  }
+  // Côté serveur
+  return process.env.NEXT_PUBLIC_API_URL || 
+         (process.env.NODE_ENV === 'production'
+           ? 'https://vrs2-backend-dqk6z91ff-simofaris2018-2330s-projects.vercel.app'
+           : 'http://localhost:3001')
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 interface ApiResponse<T> {
   success?: boolean
