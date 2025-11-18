@@ -16,34 +16,48 @@ const getCallbackURL = () => {
     return process.env.CALLBACK_URL || "http://localhost:3001/auth/google/callback";
 };
 
-// Vérifier que les variables d'environnement sont définies et non vides
-const clientId = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
-const hasClientId = clientId && typeof clientId === 'string' && clientId.trim().length > 0;
-const hasClientSecret = clientSecret && typeof clientSecret === 'string' && clientSecret.trim().length > 0;
+// Fonction pour configurer Passport de manière sécurisée
+function configurePassport() {
+    // Vérifier que les variables d'environnement sont définies et non vides
+    const clientId = process.env.CLIENT_ID;
+    const clientSecret = process.env.CLIENT_SECRET;
+    
+    // Vérifications strictes
+    const hasClientId = clientId && typeof clientId === 'string' && clientId.trim().length > 0;
+    const hasClientSecret = clientSecret && typeof clientSecret === 'string' && clientSecret.trim().length > 0;
 
-if (!hasClientId || !hasClientSecret) {
-    console.error('❌ ERREUR: Variables d\'environnement OAuth manquantes!');
-    console.error('CLIENT_ID:', hasClientId ? `✅ Défini (${clientId.substring(0, 10)}...)` : '❌ NON DÉFINI ou VIDE');
-    console.error('CLIENT_SECRET:', hasClientSecret ? '✅ Défini (***)' : '❌ NON DÉFINI ou VIDE');
-    console.error('📍 Veuillez ajouter ces variables dans Vercel:');
-    console.error('   https://vercel.com/simofaris2018-2330s-projects/vrs2-backend/settings/environment-variables');
-    console.error('⚠️  L\'authentification Google ne fonctionnera pas sans ces variables.');
-    console.error('💡 Le backend continuera de fonctionner, mais /auth/google retournera une erreur.');
-} else {
+    // Logs détaillés pour debugging
+    console.log('🔍 Vérification des variables d\'environnement OAuth...');
+    console.log('CLIENT_ID existe:', !!clientId, typeof clientId, clientId ? `longueur: ${clientId.length}` : 'undefined');
+    console.log('CLIENT_SECRET existe:', !!clientSecret, typeof clientSecret, clientSecret ? `longueur: ${clientSecret.length}` : 'undefined');
+
+    if (!hasClientId || !hasClientSecret) {
+        console.error('❌ ERREUR: Variables d\'environnement OAuth manquantes ou invalides!');
+        console.error('CLIENT_ID:', hasClientId ? `✅ Défini (${clientId.substring(0, 10)}...)` : '❌ NON DÉFINI ou VIDE');
+        console.error('CLIENT_SECRET:', hasClientSecret ? '✅ Défini (***)' : '❌ NON DÉFINI ou VIDE');
+        console.error('📍 Vérifiez que les variables sont bien définies dans Vercel:');
+        console.error('   https://vercel.com/simofaris2018-2330s-projects/vrs2-backend/settings/environment-variables');
+        console.error('⚠️  Le backend démarrera mais OAuth ne fonctionnera pas.');
+        console.error('💡 Après avoir ajouté les variables, vous DEVEZ redéployer le backend.');
+        return false;
+    }
+
     console.log('✅ Variables d\'environnement OAuth détectées');
     console.log(`   CLIENT_ID: ${clientId.substring(0, 10)}...`);
-}
 
-const callbackURL = getCallbackURL();
-console.log('🔗 Callback URL configuré:', callbackURL);
+    const callbackURL = getCallbackURL();
+    console.log('🔗 Callback URL configuré:', callbackURL);
 
-// Ne configurer Passport que si les variables sont définies et valides
-if (hasClientId && hasClientSecret) {
+    // Configurer Passport avec vérification supplémentaire
     try {
+        // Vérification finale avant de créer la stratégie
+        if (!clientId || !clientSecret) {
+            throw new Error('CLIENT_ID ou CLIENT_SECRET est null ou undefined');
+        }
+
         passport.use(new GoogleStrategy({
-             clientID: clientId,
-             clientSecret: clientSecret,
+             clientID: clientId.trim(),
+             clientSecret: clientSecret.trim(),
              callbackURL: callbackURL,
              passReqToCallback: true
          },
@@ -55,13 +69,19 @@ if (hasClientId && hasClientSecret) {
          }
         ));
         console.log('✅ Passport Google Strategy configuré avec succès');
+        return true;
     } catch (error) {
-        console.error('❌ ERREUR lors de la configuration de Passport:', error);
+        console.error('❌ ERREUR lors de la configuration de Passport:', error.message);
         console.error('Stack:', error.stack);
-        // Ne pas throw l'erreur - permettre au serveur de démarrer même si OAuth n'est pas configuré
-        console.error('⚠️  Le serveur démarre mais OAuth ne fonctionnera pas.');
+        console.error('⚠️  Le backend démarre mais OAuth ne fonctionnera pas.');
+        return false;
     }
-} else {
+}
+
+// Configurer Passport de manière sécurisée (ne pas throw d'erreur)
+const passportConfigured = configurePassport();
+
+if (!passportConfigured) {
     console.warn('⚠️  Passport Google Strategy NON configuré - variables manquantes');
     console.warn('⚠️  Les routes /auth/google retourneront une erreur 500');
 }
